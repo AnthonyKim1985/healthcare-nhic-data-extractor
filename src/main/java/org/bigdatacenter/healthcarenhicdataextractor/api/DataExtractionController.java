@@ -2,6 +2,7 @@ package org.bigdatacenter.healthcarenhicdataextractor.api;
 
 import org.bigdatacenter.healthcarenhicdataextractor.domain.extraction.parameter.ExtractionParameter;
 import org.bigdatacenter.healthcarenhicdataextractor.domain.extraction.parameter.map.ParameterKey;
+import org.bigdatacenter.healthcarenhicdataextractor.domain.extraction.request.ExtractionRequest;
 import org.bigdatacenter.healthcarenhicdataextractor.resolver.extraction.ExtractionRequestResolver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,9 +29,8 @@ public class DataExtractionController {
     @ResponseStatus(HttpStatus.OK)
     @RequestMapping(value = "dataExtraction", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_UTF8_VALUE)
     public String dataExtraction(@RequestBody ExtractionParameter extractionParameter, HttpServletResponse httpServletResponse) {
-//        ExtractionParameter extractionParameter = new Gson().fromJson(json, ExtractionParameter.class);
-        logger.info(extractionParameter.toString());
-        extractionRequestResolver.buildExtractionRequest(extractionParameter);
+        ExtractionRequest extractionRequest = extractionRequestResolver.buildExtractionRequest(extractionParameter);
+        logger.info(String.format("%s - extractionRequest: %s", currentThreadName, extractionRequest));
         return "OK";
     }
 

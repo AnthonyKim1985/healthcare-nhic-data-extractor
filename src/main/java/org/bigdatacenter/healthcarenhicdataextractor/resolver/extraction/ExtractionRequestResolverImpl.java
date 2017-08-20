@@ -132,7 +132,7 @@ public class ExtractionRequestResolverImpl implements ExtractionRequestResolver 
 
         for (int i = 0; i < joinTargetKeyListSize; i++) {
             ParameterKey parameterKey = joinTargetKeyList.get(i);
-            joinedTableNameBuilder.append(parameterKey.getDatabaseName());
+            joinedTableNameBuilder.append(parameterKey.getTableName());
 
             if (i < joinTargetKeyListSize - 1)
                 joinedTableNameBuilder.append("__");

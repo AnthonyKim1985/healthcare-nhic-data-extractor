@@ -92,7 +92,7 @@ public class HealthcareNhicDataExtractorApplicationTests {
 //        parameterInfoList.add(parameterInfo23);
 //        parameterInfoList.add(parameterInfo24);
 
-        ExtractionParameter extractionParameter = new ExtractionParameter(requestInfo, parameterInfoList);
+        ExtractionParameter extractionParameter = new ExtractionParameter("nhic", requestInfo, parameterInfoList);
         String body = restTemplate.postForObject("/extraction/api/dataExtraction", extractionParameter, String.class);
         assertThat(body).isEqualTo("OK");
     }
