@@ -23,15 +23,14 @@ public class JoinClauseBuilderImpl implements JoinClauseBuilder {
 
         final StringBuilder joinQueryBuilder = new StringBuilder();
 
-        if (joinParameterList.size() == 1) {
-            JoinParameter joinParameter = joinParameterList.get(0);
-            joinQueryBuilder.append(selectClauseBuilder.buildClause(joinParameter.getDatabaseName(), joinParameter.getTableName(), joinParameter.getProjection()));
-        } else {
-            final char entryTableAlias = 'A';
-            JoinParameter firstJoinParameter = joinParameterList.get(0);
+        final char entryTableAlias = 'A';
+        final JoinParameter entryJoinParameter = joinParameterList.get(0);
 
+        if (joinParameterList.size() == 1) {
+            joinQueryBuilder.append(selectClauseBuilder.buildClause(entryJoinParameter.getDatabaseName(), entryJoinParameter.getTableName(), entryJoinParameter.getProjection()));
+        } else {
             joinQueryBuilder.append(String.format("SELECT DISTINCT %c.%s FROM %s.%s %c",
-                    entryTableAlias, firstJoinParameter.getProjection(), firstJoinParameter.getDatabaseName(), firstJoinParameter.getTableName(), entryTableAlias));
+                    entryTableAlias, entryJoinParameter.getProjection(), entryJoinParameter.getDatabaseName(), entryJoinParameter.getTableName(), entryTableAlias));
 
             for (int i = 1; i < joinParameterList.size(); i++) {
                 JoinParameter joinParameter = joinParameterList.get(i);
