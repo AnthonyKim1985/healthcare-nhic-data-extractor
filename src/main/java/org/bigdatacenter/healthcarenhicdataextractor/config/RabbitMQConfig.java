@@ -19,8 +19,12 @@ import org.springframework.context.annotation.Configuration;
 public class RabbitMQConfig {
     public final static String EXTRACTION_REQUEST_QUEUE = "nhic-extractor-queue";
 
+    private final ConnectionFactory connectionFactory;
+
     @Autowired
-    private ConnectionFactory connectionFactory;
+    public RabbitMQConfig(ConnectionFactory connectionFactory) {
+        this.connectionFactory = connectionFactory;
+    }
 
     @Bean
     public Queue queue() {

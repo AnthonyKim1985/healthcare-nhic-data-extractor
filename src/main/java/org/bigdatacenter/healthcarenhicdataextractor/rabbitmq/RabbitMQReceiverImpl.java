@@ -1,5 +1,7 @@
 package org.bigdatacenter.healthcarenhicdataextractor.rabbitmq;
 
+import org.bigdatacenter.healthcarenhicdataextractor.api.caller.DataIntegrationPlatformAPICaller;
+import org.bigdatacenter.healthcarenhicdataextractor.config.RabbitMQConfig;
 import org.bigdatacenter.healthcarenhicdataextractor.domain.extraction.request.ExtractionRequest;
 import org.bigdatacenter.healthcarenhicdataextractor.domain.extraction.request.task.QueryTask;
 import org.bigdatacenter.healthcarenhicdataextractor.domain.extraction.request.task.creation.TableCreationTask;
@@ -11,9 +13,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.core.RabbitAdmin;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestTemplate;
 
 import java.sql.Timestamp;
 import java.util.List;
@@ -29,29 +30,61 @@ public class RabbitMQReceiverImpl implements RabbitMQReceiver {
 
     private final RawDataDBService rawDataDBService;
 
+    private final DataIntegrationPlatformAPICaller dataIntegrationPlatformAPICaller;
+
+    @Value("${shellscript.path.home}")
+    private String homePath;
+
     @Autowired
-    public RabbitMQReceiverImpl(ShellScriptResolver shellScriptResolver, RabbitAdmin rabbitAdmin, RawDataDBService rawDataDBService) {
+    public RabbitMQReceiverImpl(ShellScriptResolver shellScriptResolver, RabbitAdmin rabbitAdmin, RawDataDBService rawDataDBService, DataIntegrationPlatformAPICaller dataIntegrationPlatformAPICaller) {
         this.shellScriptResolver = shellScriptResolver;
         this.rabbitAdmin = rabbitAdmin;
         this.rawDataDBService = rawDataDBService;
+        this.dataIntegrationPlatformAPICaller = dataIntegrationPlatformAPICaller;
     }
 
     @Override
     public void runReceiver(ExtractionRequest extractionRequest) {
-        if (extractionRequest == null)
-            throw new NullPointerException(String.format("%s - Error occurs at RabbitMQReceiver: extraction request is null", currentThreadName));
-        else if (extractionRequest.getQueryTaskList().size() == 0)
-            throw new NullPointerException(String.format("%s - Error occurs at RabbitMQReceiver: There are no tasks to process.", currentThreadName));
+        if (checkExtractionRequestValidity(extractionRequest)) {
+            final String databaseName = extractionRequest.getDatabaseName();
+            final TrRequestInfo requestInfo = extractionRequest.getRequestInfo();
+            final Integer dataSetUID = requestInfo.getDataSetUID();
 
-        final String databaseName = extractionRequest.getDatabaseName();
-        final TrRequestInfo requestInfo = extractionRequest.getRequestInfo();
-        final Integer dataSetUID = requestInfo.getDataSetUID();
+            try {
+                final Long jobStartTime = System.currentTimeMillis();
+                dataIntegrationPlatformAPICaller.callUpdateJobStartTime(dataSetUID, jobStartTime);
+                dataIntegrationPlatformAPICaller.callUpdateProcessState(dataSetUID, DataIntegrationPlatformAPICaller.PROCESS_STATE_CODE_PROCESSING);
 
-        final RestTemplate restTemplate = new RestTemplate();
-        restTemplate.getMessageConverters().add(new MappingJackson2HttpMessageConverter());
+                runQueryTask(extractionRequest);
+                runArchiveTask(databaseName, requestInfo);
 
-        runQueryTask(extractionRequest);
-        runArchiveTask(databaseName, requestInfo);
+                final Long jobEndTime = System.currentTimeMillis();
+                dataIntegrationPlatformAPICaller.callUpdateJobEndTime(dataSetUID, jobEndTime);
+                dataIntegrationPlatformAPICaller.callUpdateElapsedTime(dataSetUID, (jobEndTime - jobStartTime));
+                dataIntegrationPlatformAPICaller.callUpdateProcessState(dataSetUID, DataIntegrationPlatformAPICaller.PROCESS_STATE_CODE_COMPLETED);
+            } catch (Exception e) {
+                logger.error(String.format("%s - Exception occurs in RabbitMQReceiver : %s", currentThreadName, e.getMessage()));
+                dataIntegrationPlatformAPICaller.callUpdateProcessState(dataSetUID, DataIntegrationPlatformAPICaller.PROCESS_STATE_CODE_REJECTED);
+
+                logger.error(String.format("%s - The extraction request has been purged in queue. (%s)", currentThreadName, extractionRequest));
+                rabbitAdmin.purgeQueue(RabbitMQConfig.EXTRACTION_REQUEST_QUEUE, true);
+            }
+        } else {
+            logger.error(String.format("%s - The extraction request has been purged in queue. (%s)", currentThreadName, extractionRequest));
+            rabbitAdmin.purgeQueue(RabbitMQConfig.EXTRACTION_REQUEST_QUEUE, true);
+        }
+    }
+
+    private Boolean checkExtractionRequestValidity(ExtractionRequest extractionRequest) {
+        Boolean isValid = Boolean.TRUE;
+        if (extractionRequest == null) {
+            logger.error(String.format("%s - Error occurs at RabbitMQReceiver: extraction request is null", currentThreadName));
+            isValid = Boolean.FALSE;
+        } else if (extractionRequest.getQueryTaskList().size() == 0) {
+            logger.error(String.format("%s - Error occurs at RabbitMQReceiver: There are no tasks to process.", currentThreadName));
+            isValid = Boolean.FALSE;
+        }
+        return isValid;
     }
 
     private void runQueryTask(ExtractionRequest extractionRequest) {
@@ -63,8 +96,8 @@ public class RabbitMQReceiverImpl implements RabbitMQReceiver {
             final TableCreationTask tableCreationTask = queryTask.getTableCreationTask();
             final DataExtractionTask dataExtractionTask = queryTask.getDataExtractionTask();
 
-            final long queryBeginTime = System.currentTimeMillis();
-            logger.info(String.format("%s - Remaining %d query processing", currentThreadName, (queryTaskListSize - i)));
+            final Long queryBeginTime = System.currentTimeMillis();
+            logger.info(String.format("%s - Remaining %d/%d query processing", currentThreadName, (queryTaskListSize - i), queryTaskListSize));
 
             if (tableCreationTask != null) {
                 logger.info(String.format("%s - Start table creation at Hive Query: %s", currentThreadName, tableCreationTask.getQuery()));
@@ -80,14 +113,10 @@ public class RabbitMQReceiverImpl implements RabbitMQReceiver {
                 //
                 final String hdfsLocation = dataExtractionTask.getHdfsLocation();
                 final String header = dataExtractionTask.getHeader();
-                shellScriptResolver.runReducePartsMerger(hdfsLocation, header);
+                shellScriptResolver.runReducePartsMerger(hdfsLocation, header, homePath);
             }
 
-            //
-            // TODO: Update transaction database
-            //
-
-            final long queryEndTime = System.currentTimeMillis() - queryBeginTime;
+            final Long queryEndTime = System.currentTimeMillis() - queryBeginTime;
             logger.info(String.format("%s - Finish Hive Query: %s, Elapsed time: %d ms", currentThreadName, queryTask, queryEndTime));
         }
     }
@@ -101,13 +130,10 @@ public class RabbitMQReceiverImpl implements RabbitMQReceiver {
 
         final long archiveFileBeginTime = System.currentTimeMillis();
         logger.info(String.format("%s - Start archiving the extracted data set: %s", currentThreadName, archiveFileName));
-        shellScriptResolver.runArchiveExtractedDataSet(archiveFileName, ftpLocation);
+        shellScriptResolver.runArchiveExtractedDataSet(archiveFileName, ftpLocation, homePath);
         logger.info(String.format("%s - Finish archiving the extracted data set: %s, Elapsed time: %d ms", currentThreadName, archiveFileName, (System.currentTimeMillis() - archiveFileBeginTime)));
 
-        //
-        // TODO: Update meta database
-        //
         final String ftpURI = String.format("%s/%s", ftpLocation, archiveFileName);
-        metadbService.insertFtpRequest(new FtpInfo(requestInfo.getDataSetUID(), requestInfo.getUserID(), ftpURI));
+//        metadbService.insertFtpRequest(new FtpInfo(requestInfo.getDataSetUID(), requestInfo.getUserID(), ftpURI));
     }
 }
