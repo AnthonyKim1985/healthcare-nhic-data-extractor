@@ -9,6 +9,6 @@ import java.io.Serializable;
 @AllArgsConstructor
 public class DataExtractionTask implements Serializable {
     private String hdfsLocation;
-    private String hiveQuery;
+    private String query;
     private String header;
 }

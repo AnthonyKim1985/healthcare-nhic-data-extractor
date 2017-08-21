@@ -11,6 +11,7 @@ import java.util.List;
 @Data
 @AllArgsConstructor
 public class ExtractionRequest implements Serializable {
+    private String databaseName;
     private TrRequestInfo requestInfo;
     private List<QueryTask> queryTaskList;
 }

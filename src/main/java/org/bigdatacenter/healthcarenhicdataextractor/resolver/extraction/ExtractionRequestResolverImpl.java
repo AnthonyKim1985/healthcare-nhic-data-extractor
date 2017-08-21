@@ -54,6 +54,11 @@ public class ExtractionRequestResolverImpl implements ExtractionRequestResolver 
         final String joinCondition = requestInfo.getJoinCondition();
         final Integer joinConditionYear = requestInfo.getJoinConditionYear();
 
+        if (joinConditionYear == null)
+            throw new NullPointerException("The joinConditionYear is null value. (must be zero or positive number)");
+        else if (joinConditionYear < 0)
+            throw new NullPointerException("The joinConditionYear is zero. (must be zero or positive number)");
+
         final ExtractionRequestParameter extractionRequestParameter = extractionRequestParameterResolver.buildRequestParameter(extractionParameter);
 
         final Map<Integer/* Year */, Map<ParameterKey, List<ParameterValue>>> yearParameterMap = extractionRequestParameter.getYearParameterMap();
@@ -126,21 +131,21 @@ public class ExtractionRequestResolverImpl implements ExtractionRequestResolver 
         //
         // TODO: 2. 원시 데이터 셋 테이블과 조인연산 수행을 위한 쿼리 및 데이터 추출 쿼리를 생성한다.
         //
-        if (joinConditionYear > 0) {
-            final JoinParameter targetJoinParameter = joinParameterMapForExtraction.get(joinConditionYear);
-            for (Integer sourceDataSetYear : yearAdjacentTableInfoMap.keySet()) {
-                final Set<AdjacentTableInfo> adjacentTableInfoSet = yearAdjacentTableInfoMap.get(sourceDataSetYear);
-                getJoinQueryTasks(adjacentTableInfoSet, targetJoinParameter, databaseName, joinCondition, requestInfo.getDataSetUID());
-            }
-        } else if (joinConditionYear == 0) {
+        if (joinConditionYear == 0) {
             for (Integer dataSetYear : joinParameterMapForExtraction.keySet()) {
                 final JoinParameter targetJoinParameter = joinParameterMapForExtraction.get(dataSetYear);
                 final Set<AdjacentTableInfo> adjacentTableInfoSet = yearAdjacentTableInfoMap.get(dataSetYear);
-                getJoinQueryTasks(adjacentTableInfoSet, targetJoinParameter, databaseName, joinCondition, requestInfo.getDataSetUID());
+                queryTaskList.addAll(getJoinQueryTasks(adjacentTableInfoSet, targetJoinParameter, databaseName, joinCondition, requestInfo.getDataSetUID()));
+            }
+        } else if (joinConditionYear > 0) {
+            final JoinParameter targetJoinParameter = joinParameterMapForExtraction.get(joinConditionYear);
+            for (Integer sourceDataSetYear : yearAdjacentTableInfoMap.keySet()) {
+                final Set<AdjacentTableInfo> adjacentTableInfoSet = yearAdjacentTableInfoMap.get(sourceDataSetYear);
+                queryTaskList.addAll(getJoinQueryTasks(adjacentTableInfoSet, targetJoinParameter, databaseName, joinCondition, requestInfo.getDataSetUID()));
             }
         }
 
-        return new ExtractionRequest(requestInfo, queryTaskList);
+        return new ExtractionRequest(databaseName, requestInfo, queryTaskList);
     }
 
     private List<QueryTask> getJoinQueryTasks(Set<AdjacentTableInfo> adjacentTableInfoSet, JoinParameter targetJoinParameter, String databaseName, String joinCondition, Integer dataSetUID) {

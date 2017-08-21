@@ -15,7 +15,7 @@ apply plugin: 'eclipse-wtp'
 apply plugin: 'org.springframework.boot'
 apply plugin: 'war'
 
-sourceCompatibility = 1.8
+sourceCompatibility = 1.7
 
 war {
 	baseName = 'healthcare-nhic-data-extractor'
@@ -31,10 +31,9 @@ configurations {
 }
 
 dependencies {
-	compile('org.springframework.boot:spring-boot-starter-amqp')
-	compile('org.mybatis.spring.boot:mybatis-spring-boot-starter:1.3.0')
-	compile('org.springframework.boot:spring-boot-starter-web')
-
+    compile('org.springframework.boot:spring-boot-starter-web')
+    compile('org.springframework.boot:spring-boot-starter-amqp')
+    compile('org.mybatis.spring.boot:mybatis-spring-boot-starter:1.3.0')
     compile('org.apache.hive:hive-jdbc:1.2.1') {
         exclude group: 'org.slf4j', module: 'slf4j-log4j12'
         exclude group: 'org.eclipse.jetty.aggregate', module: 'jetty-all'
@@ -43,8 +42,7 @@ dependencies {
         exclude group: 'org.slf4j', module: 'slf4j-log4j12'
     }
 	compileOnly('org.projectlombok:lombok')
-	providedRuntime('org.springframework.boot:spring-boot-starter-tomcat')
-
+	testCompile('org.springframework.boot:spring-boot-starter-tomcat')
     testCompile('com.fasterxml.jackson.core:jackson-databind')
 	testCompile('org.springframework.boot:spring-boot-starter-test')
     testCompile('org.mybatis.spring.boot:mybatis-spring-boot-starter-test:1.3.0')
