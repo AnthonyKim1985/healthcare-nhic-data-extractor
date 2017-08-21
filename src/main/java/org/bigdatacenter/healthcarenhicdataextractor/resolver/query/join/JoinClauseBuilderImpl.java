@@ -47,4 +47,15 @@ public class JoinClauseBuilderImpl implements JoinClauseBuilder {
 
         return joinQueryBuilder.toString();
     }
+
+    @Override
+    public String buildClause(JoinParameter sourceJoinParameter, JoinParameter targetJoinParameter) {
+        if (sourceJoinParameter == null || targetJoinParameter == null)
+            return null;
+
+        return String.format("SELECT DISTINCT A.* FROM %s.%s A INNER JOIN %s.%s B ON (A.%s = B.%s)",
+                sourceJoinParameter.getDatabaseName(), sourceJoinParameter.getTableName(),
+                targetJoinParameter.getDatabaseName(), targetJoinParameter.getTableName(),
+                sourceJoinParameter.getJoinKey(), targetJoinParameter.getJoinKey());
+    }
 }

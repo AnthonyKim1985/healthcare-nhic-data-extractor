@@ -1,7 +1,7 @@
 package org.bigdatacenter.healthcarenhicdataextractor.resolver.extraction;
 
 import org.bigdatacenter.healthcarenhicdataextractor.domain.extraction.parameter.ExtractionParameter;
-import org.bigdatacenter.healthcarenhicdataextractor.domain.extraction.parameter.info.ParameterInfo;
+import org.bigdatacenter.healthcarenhicdataextractor.domain.extraction.parameter.info.AdjacentTableInfo;
 import org.bigdatacenter.healthcarenhicdataextractor.domain.extraction.parameter.map.ParameterKey;
 import org.bigdatacenter.healthcarenhicdataextractor.domain.extraction.parameter.map.ParameterValue;
 import org.bigdatacenter.healthcarenhicdataextractor.domain.extraction.request.ExtractionRequest;
@@ -9,6 +9,7 @@ import org.bigdatacenter.healthcarenhicdataextractor.domain.extraction.request.p
 import org.bigdatacenter.healthcarenhicdataextractor.domain.extraction.request.query.JoinParameter;
 import org.bigdatacenter.healthcarenhicdataextractor.domain.extraction.request.task.QueryTask;
 import org.bigdatacenter.healthcarenhicdataextractor.domain.extraction.request.task.creation.TableCreationTask;
+import org.bigdatacenter.healthcarenhicdataextractor.domain.extraction.request.task.extraction.DataExtractionTask;
 import org.bigdatacenter.healthcarenhicdataextractor.domain.transaction.TrRequestInfo;
 import org.bigdatacenter.healthcarenhicdataextractor.resolver.extraction.parameter.ExtractionRequestParameterResolver;
 import org.bigdatacenter.healthcarenhicdataextractor.resolver.query.join.JoinClauseBuilder;
@@ -53,13 +54,14 @@ public class ExtractionRequestResolverImpl implements ExtractionRequestResolver 
         final String joinCondition = requestInfo.getJoinCondition();
         final Integer joinConditionYear = requestInfo.getJoinConditionYear();
 
-        final List<ParameterInfo> parameterInfoList = extractionParameter.getParameterInfoList();
-        final ExtractionRequestParameter extractionRequestParameter = extractionRequestParameterResolver.buildRequestParameter(parameterInfoList);
+        final ExtractionRequestParameter extractionRequestParameter = extractionRequestParameterResolver.buildRequestParameter(extractionParameter);
 
         final Map<Integer/* Year */, Map<ParameterKey, List<ParameterValue>>> yearParameterMap = extractionRequestParameter.getYearParameterMap();
         final Map<Integer/* Year */, Set<ParameterKey>> yearJoinKeyMap = extractionRequestParameter.getYearJoinKeyMap();
+        final Map<Integer/* Year */, Set<AdjacentTableInfo>> yearAdjacentTableInfoMap = extractionRequestParameter.getYearAdjacentTableInfoMap();
 
         final List<QueryTask> queryTaskList = new ArrayList<>();
+        final Map<Integer/* Year */, JoinParameter> joinParameterMapForExtraction = new HashMap<>();
 
         //
         // TODO: 1. 추출 연산을 위한 임시 테이블들을 생성한다.
@@ -116,13 +118,54 @@ public class ExtractionRequestResolverImpl implements ExtractionRequestResolver 
 
             TableCreationTask tableCreationTask = new TableCreationTask(dbAndHashedTableName, joinQuery);
             queryTaskList.add(new QueryTask(tableCreationTask, null));
+
+            JoinParameter joinParameter = new JoinParameter(joinDbName, joinTableName, joinCondition, "key_seq");
+            joinParameterMapForExtraction.put(year, joinParameter);
         }
 
         //
-        // TODO: 2. 원시 데이터 셋 테이블과 조인연산 수행을 위한 쿼리를 생성한다.
+        // TODO: 2. 원시 데이터 셋 테이블과 조인연산 수행을 위한 쿼리 및 데이터 추출 쿼리를 생성한다.
         //
+        if (joinConditionYear > 0) {
+            final JoinParameter targetJoinParameter = joinParameterMapForExtraction.get(joinConditionYear);
+            for (Integer sourceDataSetYear : yearAdjacentTableInfoMap.keySet()) {
+                final Set<AdjacentTableInfo> adjacentTableInfoSet = yearAdjacentTableInfoMap.get(sourceDataSetYear);
+                getJoinQueryTasks(adjacentTableInfoSet, targetJoinParameter, databaseName, joinCondition, requestInfo.getDataSetUID());
+            }
+        } else if (joinConditionYear == 0) {
+            for (Integer dataSetYear : joinParameterMapForExtraction.keySet()) {
+                final JoinParameter targetJoinParameter = joinParameterMapForExtraction.get(dataSetYear);
+                final Set<AdjacentTableInfo> adjacentTableInfoSet = yearAdjacentTableInfoMap.get(dataSetYear);
+                getJoinQueryTasks(adjacentTableInfoSet, targetJoinParameter, databaseName, joinCondition, requestInfo.getDataSetUID());
+            }
+        }
 
         return new ExtractionRequest(requestInfo, queryTaskList);
+    }
+
+    private List<QueryTask> getJoinQueryTasks(Set<AdjacentTableInfo> adjacentTableInfoSet, JoinParameter targetJoinParameter, String databaseName, String joinCondition, Integer dataSetUID) {
+        List<QueryTask> queryTaskList = new ArrayList<>();
+
+        for (AdjacentTableInfo adjacentTableInfo : adjacentTableInfoSet) {
+            final String header = adjacentTableInfo.getHeader();
+            JoinParameter sourceJoinParameter = new JoinParameter(adjacentTableInfo.getDatabaseName(), adjacentTableInfo.getTableName(), header, joinCondition);
+
+            final String joinQuery = joinClauseBuilder.buildClause(sourceJoinParameter, targetJoinParameter);
+            final String joinDbName = String.format("%s_join_%s_integrated", databaseName, joinCondition);
+
+            final String joinTableName = String.format("%s_%s",
+                    String.format("%s__%s", sourceJoinParameter.getTableName(), targetJoinParameter.getTableName()), CommonUtil.getHashedString(joinQuery));
+
+            final String dbAndHashedTableName = String.format("%s.%s", joinDbName, joinTableName);
+            final String extractionQuery = selectClauseBuilder.buildClause(joinDbName, joinTableName, header);
+
+            TableCreationTask tableCreationTask = new TableCreationTask(dbAndHashedTableName, joinQuery);
+            DataExtractionTask dataExtractionTask = new DataExtractionTask(CommonUtil.getHdfsLocation(dbAndHashedTableName, dataSetUID), extractionQuery, header);
+
+            queryTaskList.add(new QueryTask(tableCreationTask, dataExtractionTask));
+        }
+
+        return queryTaskList;
     }
 
     private String getJoinedTableName(Set<ParameterKey> joinTargetKeySet) {

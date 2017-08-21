@@ -3,6 +3,7 @@ package org.bigdatacenter.healthcarenhicdataextractor.domain.extraction.request.
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.bigdatacenter.healthcarenhicdataextractor.domain.extraction.parameter.info.AdjacentTableInfo;
 import org.bigdatacenter.healthcarenhicdataextractor.domain.extraction.parameter.map.ParameterKey;
 import org.bigdatacenter.healthcarenhicdataextractor.domain.extraction.parameter.map.ParameterValue;
 
@@ -16,4 +17,5 @@ import java.util.Set;
 public class ExtractionRequestParameter {
     private Map<Integer/* Year */, Set<ParameterKey>> yearJoinKeyMap;
     private Map<Integer/* Year */, Map<ParameterKey, List<ParameterValue>>> yearParameterMap;
+    private Map<Integer/* Year */, Set<AdjacentTableInfo>> yearAdjacentTableInfoMap;
 }

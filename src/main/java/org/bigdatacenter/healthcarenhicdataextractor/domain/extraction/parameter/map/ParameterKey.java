@@ -2,8 +2,10 @@ package org.bigdatacenter.healthcarenhicdataextractor.domain.extraction.paramete
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import org.bigdatacenter.healthcarenhicdataextractor.domain.extraction.parameter.info.AdjacentTableInfo;
 
 import java.io.Serializable;
+import java.util.List;
 
 @Data
 @AllArgsConstructor

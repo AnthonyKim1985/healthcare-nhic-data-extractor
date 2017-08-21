@@ -1,9 +1,11 @@
 package org.bigdatacenter.healthcarenhicdataextractor.resolver.extraction.parameter;
 
-import org.bigdatacenter.healthcarenhicdataextractor.domain.extraction.request.parameter.ExtractionRequestParameter;
+import org.bigdatacenter.healthcarenhicdataextractor.domain.extraction.parameter.ExtractionParameter;
+import org.bigdatacenter.healthcarenhicdataextractor.domain.extraction.parameter.info.AdjacentTableInfo;
 import org.bigdatacenter.healthcarenhicdataextractor.domain.extraction.parameter.info.ParameterInfo;
 import org.bigdatacenter.healthcarenhicdataextractor.domain.extraction.parameter.map.ParameterKey;
 import org.bigdatacenter.healthcarenhicdataextractor.domain.extraction.parameter.map.ParameterValue;
+import org.bigdatacenter.healthcarenhicdataextractor.domain.extraction.request.parameter.ExtractionRequestParameter;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
@@ -11,10 +13,17 @@ import java.util.*;
 @Component
 public class ExtractionRequestParameterResolverImpl implements ExtractionRequestParameterResolver {
     @Override
-    public ExtractionRequestParameter buildRequestParameter(List<ParameterInfo> parameterInfoList) {
+    public ExtractionRequestParameter buildRequestParameter(ExtractionParameter extractionParameter) {
+        final List<ParameterInfo> parameterInfoList = extractionParameter.getParameterInfoList();
+        final Set<AdjacentTableInfo> adjacentTableInfoSet = extractionParameter.getAdjacentTableInfoSet();
+
         final Map<Integer/* Year */, Set<ParameterKey>> yearJoinKeyMap = new HashMap<>();
         final Map<Integer/* Year */, Map<ParameterKey, List<ParameterValue>>> yearParameterMap = new HashMap<>();
+        final Map<Integer/* Year */, Set<AdjacentTableInfo>> yearAdjacentTableInfoMap = new HashMap<>();
 
+        //
+        // TODO: Convert ParameterInfo List to yearParameterMap
+        //
         for (ParameterInfo parameterInfo : parameterInfoList) {
             final Integer dataSetYear = parameterInfo.getDataSetYear();
             final String databaseName = parameterInfo.getDatabaseName();
@@ -67,6 +76,25 @@ public class ExtractionRequestParameterResolverImpl implements ExtractionRequest
             }
         }
 
-        return new ExtractionRequestParameter(yearJoinKeyMap, yearParameterMap);
+        //
+        // TODO: Convert AdjacentTableInfo Set to yearAdjacentTableInfoMap
+        //
+        for (AdjacentTableInfo adjacentTableInfo : adjacentTableInfoSet) {
+            final Integer dataSetYear = adjacentTableInfo.getDataSetYear();
+
+            Set<AdjacentTableInfo> yearAdjacentTableInfoMapValue = yearAdjacentTableInfoMap.get(dataSetYear);
+
+            //noinspection Duplicates
+            if (yearAdjacentTableInfoMapValue == null) {
+                yearAdjacentTableInfoMapValue = new HashSet<>();
+
+                yearAdjacentTableInfoMapValue.add(adjacentTableInfo);
+                yearAdjacentTableInfoMap.put(dataSetYear, yearAdjacentTableInfoMapValue);
+            } else {
+                yearAdjacentTableInfoMapValue.add(adjacentTableInfo);
+            }
+        }
+
+        return new ExtractionRequestParameter(yearJoinKeyMap, yearParameterMap, yearAdjacentTableInfoMap);
     }
 }

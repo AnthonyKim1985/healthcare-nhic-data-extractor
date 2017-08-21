@@ -1,5 +1,6 @@
 package org.bigdatacenter.healthcarenhicdataextractor.api;
 
+import com.google.gson.Gson;
 import org.bigdatacenter.healthcarenhicdataextractor.domain.extraction.parameter.ExtractionParameter;
 import org.bigdatacenter.healthcarenhicdataextractor.domain.extraction.parameter.map.ParameterKey;
 import org.bigdatacenter.healthcarenhicdataextractor.domain.extraction.request.ExtractionRequest;
@@ -31,7 +32,7 @@ public class DataExtractionController {
     public String dataExtraction(@RequestBody ExtractionParameter extractionParameter, HttpServletResponse httpServletResponse) {
         ExtractionRequest extractionRequest = extractionRequestResolver.buildExtractionRequest(extractionParameter);
         logger.info(String.format("%s - extractionRequest: %s", currentThreadName, extractionRequest));
-        return "OK";
+        return new Gson().toJson(extractionRequest, ExtractionRequest.class);
     }
 
     @ResponseStatus(HttpStatus.OK)
