@@ -12,4 +12,6 @@ public interface DataIntegrationPlatformAPICaller {
     void callUpdateElapsedTime(Integer dataSetUID, Long elapsedTime);
 
     void callUpdateProcessState(Integer dataSetUID, Integer processState);
+
+    void callCreateFtpInfo(Integer dataSetUID, String userID, String ftpURI);
 }

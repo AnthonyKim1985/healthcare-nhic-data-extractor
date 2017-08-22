@@ -134,6 +134,6 @@ public class RabbitMQReceiverImpl implements RabbitMQReceiver {
         logger.info(String.format("%s - Finish archiving the extracted data set: %s, Elapsed time: %d ms", currentThreadName, archiveFileName, (System.currentTimeMillis() - archiveFileBeginTime)));
 
         final String ftpURI = String.format("%s/%s", ftpLocation, archiveFileName);
-//        metadbService.insertFtpRequest(new FtpInfo(requestInfo.getDataSetUID(), requestInfo.getUserID(), ftpURI));
+        dataIntegrationPlatformAPICaller.callCreateFtpInfo(requestInfo.getDataSetUID(), requestInfo.getUserID(), ftpURI);
     }
 }

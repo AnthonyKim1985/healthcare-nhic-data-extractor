@@ -36,6 +36,9 @@ public class DataIntegrationPlatformAPICallerImpl implements DataIntegrationPlat
     @Value("${platform.rest.api.update.process-state}")
     private String updateProcessStateURL;
 
+    @Value("${platform.rest.api.create.ftp-info}")
+    private String createFtpInfoURL;
+
     public DataIntegrationPlatformAPICallerImpl() {
         restTemplate = new RestTemplate();
         restTemplate.getMessageConverters().add(new MappingJackson2HttpMessageConverter());
@@ -90,5 +93,18 @@ public class DataIntegrationPlatformAPICallerImpl implements DataIntegrationPlat
         Integer response = restTemplate.postForObject(updateProcessStateURL, request, Integer.class);
 
         logger.info(String.format("%s - The processState column updated %d record(s).", currentThreadName, response));
+    }
+
+    @Override
+    public void callCreateFtpInfo(Integer dataSetUID, String userID, String ftpURI) {
+        final MultiValueMap<String, String> parameters = new LinkedMultiValueMap<>();
+        parameters.add("dataSetUID", String.valueOf(dataSetUID));
+        parameters.add("userID", userID);
+        parameters.add("ftpURI", ftpURI);
+
+        HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(parameters, headers);
+        Integer response = restTemplate.postForObject(createFtpInfoURL, request, Integer.class);
+
+        logger.info(String.format("%s - The FTP Info has been inserted. (code: %d)", currentThreadName, response));
     }
 }
