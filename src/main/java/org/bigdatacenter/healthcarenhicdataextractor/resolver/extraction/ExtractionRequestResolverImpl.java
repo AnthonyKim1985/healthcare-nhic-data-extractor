@@ -49,7 +49,6 @@ public class ExtractionRequestResolverImpl implements ExtractionRequestResolver 
         if (extractionParameter == null)
             throw new NullPointerException(String.format("%s - extractionParameter is null.", currentThreadName));
 
-
         try {
             final TrRequestInfo requestInfo = extractionParameter.getRequestInfo();
             final String databaseName = extractionParameter.getDatabaseName();
@@ -133,13 +132,16 @@ public class ExtractionRequestResolverImpl implements ExtractionRequestResolver 
             //
             // TODO: 2. 원시 데이터 셋 테이블과 조인연산 수행을 위한 쿼리 및 데이터 추출 쿼리를 생성한다.
             //
+            /* 기준 연도가 주어지지 않았을 때 (비추적) */
             if (joinConditionYear == 0) {
                 for (Integer dataSetYear : joinParameterMapForExtraction.keySet()) {
                     final JoinParameter targetJoinParameter = joinParameterMapForExtraction.get(dataSetYear);
                     final Set<AdjacentTableInfo> adjacentTableInfoSet = yearAdjacentTableInfoMap.get(dataSetYear);
                     queryTaskList.addAll(getJoinQueryTasks(adjacentTableInfoSet, targetJoinParameter, databaseName, joinCondition, requestInfo.getDataSetUID()));
                 }
-            } else if (joinConditionYear > 0) {
+            }
+            /* 기준 연도가 주어졌을 때 (추적) */
+            else if (joinConditionYear > 0) {
                 final JoinParameter targetJoinParameter = joinParameterMapForExtraction.get(joinConditionYear);
                 for (Integer sourceDataSetYear : yearAdjacentTableInfoMap.keySet()) {
                     final Set<AdjacentTableInfo> adjacentTableInfoSet = yearAdjacentTableInfoMap.get(sourceDataSetYear);
@@ -150,7 +152,7 @@ public class ExtractionRequestResolverImpl implements ExtractionRequestResolver 
             return new ExtractionRequest(databaseName, requestInfo, queryTaskList);
         } catch (Exception e) {
             e.printStackTrace();
-            throw new NullPointerException(e.getMessage());
+            throw new RuntimeException(e.getMessage());
         }
     }
 

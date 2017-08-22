@@ -122,7 +122,7 @@ public class RabbitMQReceiverImpl implements RabbitMQReceiver {
                     //
                     // TODO: Merge Reducer output files in HDFS, download merged file to local file system.
                     //
-                    final String dataFileName = dataExtractionTask.getRawTableName();
+                    final String dataFileName = dataExtractionTask.getDataFileName();
                     final String hdfsLocation = dataExtractionTask.getHdfsLocation();
                     final String header = dataExtractionTask.getHeader();
                     shellScriptResolver.runReducePartsMerger(hdfsLocation, header, homePath, dataFileName);
