@@ -63,15 +63,15 @@ public class RabbitMQReceiverImpl implements RabbitMQReceiver {
                 dataIntegrationPlatformAPICaller.callUpdateElapsedTime(dataSetUID, (jobEndTime - jobStartTime));
                 dataIntegrationPlatformAPICaller.callUpdateProcessState(dataSetUID, DataIntegrationPlatformAPICaller.PROCESS_STATE_CODE_COMPLETED);
             } catch (Exception e) {
-                logger.error(String.format("%s - Exception occurs in RabbitMQReceiver : %s", currentThreadName, e.getMessage()));
-                dataIntegrationPlatformAPICaller.callUpdateProcessState(dataSetUID, DataIntegrationPlatformAPICaller.PROCESS_STATE_CODE_REJECTED);
-
-                logger.error(String.format("%s - The extraction request has been purged in queue. (%s)", currentThreadName, extractionRequest));
                 rabbitAdmin.purgeQueue(RabbitMQConfig.EXTRACTION_REQUEST_QUEUE, true);
+                logger.error(String.format("%s - The extraction request has been purged in queue. (%s)", currentThreadName, extractionRequest));
+
+                dataIntegrationPlatformAPICaller.callUpdateProcessState(dataSetUID, DataIntegrationPlatformAPICaller.PROCESS_STATE_CODE_REJECTED);
+                logger.error(String.format("%s - Exception occurs in RabbitMQReceiver : %s", currentThreadName, e.getMessage()));
             }
         } else {
-            logger.error(String.format("%s - The extraction request has been purged in queue. (%s)", currentThreadName, extractionRequest));
             rabbitAdmin.purgeQueue(RabbitMQConfig.EXTRACTION_REQUEST_QUEUE, true);
+            logger.error(String.format("%s - The extraction request has been purged in queue. (%s)", currentThreadName, extractionRequest));
         }
     }
 
@@ -97,7 +97,7 @@ public class RabbitMQReceiverImpl implements RabbitMQReceiver {
             final DataExtractionTask dataExtractionTask = queryTask.getDataExtractionTask();
 
             final Long queryBeginTime = System.currentTimeMillis();
-            logger.info(String.format("%s - Remaining %d/%d query processing", currentThreadName, (queryTaskListSize - i), queryTaskListSize));
+            logger.info(String.format("%s - Processing %d/%d query.", currentThreadName, (i + 1), queryTaskListSize));
 
             if (tableCreationTask != null) {
                 logger.info(String.format("%s - Start table creation at Hive Query: %s", currentThreadName, tableCreationTask.getQuery()));

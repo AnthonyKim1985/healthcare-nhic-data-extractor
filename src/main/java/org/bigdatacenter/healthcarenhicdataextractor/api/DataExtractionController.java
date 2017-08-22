@@ -1,5 +1,6 @@
 package org.bigdatacenter.healthcarenhicdataextractor.api;
 
+import com.google.gson.Gson;
 import org.bigdatacenter.healthcarenhicdataextractor.api.caller.DataIntegrationPlatformAPICaller;
 import org.bigdatacenter.healthcarenhicdataextractor.config.RabbitMQConfig;
 import org.bigdatacenter.healthcarenhicdataextractor.domain.extraction.parameter.ExtractionParameter;
@@ -55,7 +56,7 @@ public class DataExtractionController {
             }
 
             final String jobAcceptedTime = dateFormat.format(new Date(System.currentTimeMillis()));
-            final String jsonForExtractionRequest = extractionRequest.toString();//new Gson().toJson(extractionRequest, ExtractionRequest.class);
+            final String jsonForExtractionRequest = new Gson().toJson(extractionRequest, ExtractionRequest.class);
             extractionResponse = new ExtractionResponse(jobAcceptedTime, jsonForExtractionRequest);
         } catch (Exception e) {
             dataIntegrationPlatformAPICaller.callUpdateProcessState(dataSetUID, DataIntegrationPlatformAPICaller.PROCESS_STATE_CODE_REJECTED);

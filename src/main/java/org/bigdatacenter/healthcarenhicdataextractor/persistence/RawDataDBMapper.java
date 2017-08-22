@@ -12,5 +12,5 @@ public interface RawDataDBMapper {
     void extractData(@Param("dataExtractionTask") DataExtractionTask dataExtractionTask);
 
     @Select("CREATE TABLE IF NOT EXISTS ${tableCreationTask.dbAndHashedTableName} AS ${tableCreationTask.query}")
-    void createTable(@Param("hiveCreationTask") TableCreationTask tableCreationTask);
+    void createTable(@Param("tableCreationTask") TableCreationTask tableCreationTask);
 }
