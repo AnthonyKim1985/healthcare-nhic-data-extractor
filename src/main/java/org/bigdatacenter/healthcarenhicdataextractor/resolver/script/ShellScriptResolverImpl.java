@@ -15,8 +15,8 @@ public class ShellScriptResolverImpl implements ShellScriptResolver {
     private static final Logger logger = LoggerFactory.getLogger(ShellScriptResolverImpl.class);
 
     @Override
-    public void runReducePartsMerger(String hdfsLocation, String header, String homePath) {
-        fork(CommandBuilder.buildReducePartsMerger(hdfsLocation, header, homePath));
+    public void runReducePartsMerger(String hdfsLocation, String header, String homePath, String dataFileName) {
+        fork(CommandBuilder.buildReducePartsMerger(hdfsLocation, header, homePath, dataFileName));
     }
 
     @Override
@@ -41,8 +41,8 @@ public class ShellScriptResolverImpl implements ShellScriptResolver {
     }
 
     private static final class CommandBuilder implements Serializable {
-        static String buildReducePartsMerger(String hdfsLocation, String header, String homePath) {
-            return String.format("sh sh/hdfs-parts-merger.sh %s %s %s", hdfsLocation, header, homePath);
+        static String buildReducePartsMerger(String hdfsLocation, String header, String homePath, String dataFileName) {
+            return String.format("sh sh/hdfs-parts-merger.sh %s %s %s %s", hdfsLocation, header, homePath, dataFileName);
         }
 
         static String buildArchiveExtractedDataSet(String archiveFileName, String ftpLocation, String homePath) {

@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
-#USAGE: sh hdfs-parts-merger.sh [hdfs_location] [header] [home_path]
+#USAGE: sh hdfs-parts-merger.sh [hdfs_location] [header] [home_path] [data_file_name]
 
 hdfsLocation=$1
 header=$2
 homePath=$3
+dataFileName=$4
 
-dbTableName=`echo ${hdfsLocation} | cut -d'/' -f4`
-dataFileName=`echo ${hdfsLocation} | cut -d'/' -f4 | cut -d'.' -f2`
+# dbTableName=`echo ${hdfsLocation} | cut -d'/' -f4`
+# dataFileName=`echo ${hdfsLocation} | cut -d'/' -f4 | cut -d'.' -f2`
 dataSetDirName=${homePath}/extracted_dataset
 
 if ! test -d ${dataSetDirName}  ; then

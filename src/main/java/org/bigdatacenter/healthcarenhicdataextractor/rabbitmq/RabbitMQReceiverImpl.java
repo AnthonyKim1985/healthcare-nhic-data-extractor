@@ -62,16 +62,25 @@ public class RabbitMQReceiverImpl implements RabbitMQReceiver {
                 dataIntegrationPlatformAPICaller.callUpdateJobEndTime(dataSetUID, jobEndTime);
                 dataIntegrationPlatformAPICaller.callUpdateElapsedTime(dataSetUID, (jobEndTime - jobStartTime));
                 dataIntegrationPlatformAPICaller.callUpdateProcessState(dataSetUID, DataIntegrationPlatformAPICaller.PROCESS_STATE_CODE_COMPLETED);
-            } catch (Exception e) {
-                rabbitAdmin.purgeQueue(RabbitMQConfig.EXTRACTION_REQUEST_QUEUE, true);
-                logger.error(String.format("%s - The extraction request has been purged in queue. (%s)", currentThreadName, extractionRequest));
+            } catch (Exception e1) {
+                try {
+                    dataIntegrationPlatformAPICaller.callUpdateProcessState(dataSetUID, DataIntegrationPlatformAPICaller.PROCESS_STATE_CODE_REJECTED);
+                    logger.error(String.format("%s - Exception occurs in RabbitMQReceiver : %s", currentThreadName, e1.getMessage()));
 
-                dataIntegrationPlatformAPICaller.callUpdateProcessState(dataSetUID, DataIntegrationPlatformAPICaller.PROCESS_STATE_CODE_REJECTED);
-                logger.error(String.format("%s - Exception occurs in RabbitMQReceiver : %s", currentThreadName, e.getMessage()));
+                    rabbitAdmin.purgeQueue(RabbitMQConfig.EXTRACTION_REQUEST_QUEUE, true);
+                    logger.error(String.format("%s - The extraction request has been purged in queue. (%s)", currentThreadName, extractionRequest));
+                    e1.printStackTrace();
+                } catch (Exception e2) {
+                    e2.printStackTrace();
+                }
             }
         } else {
-            rabbitAdmin.purgeQueue(RabbitMQConfig.EXTRACTION_REQUEST_QUEUE, true);
-            logger.error(String.format("%s - The extraction request has been purged in queue. (%s)", currentThreadName, extractionRequest));
+            try {
+                rabbitAdmin.purgeQueue(RabbitMQConfig.EXTRACTION_REQUEST_QUEUE, true);
+                logger.error(String.format("%s - The extraction request has been purged in queue. (%s)", currentThreadName, extractionRequest));
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
     }
 
@@ -88,52 +97,62 @@ public class RabbitMQReceiverImpl implements RabbitMQReceiver {
     }
 
     private void runQueryTask(ExtractionRequest extractionRequest) {
-        final List<QueryTask> queryTaskList = extractionRequest.getQueryTaskList();
-        final int queryTaskListSize = queryTaskList.size();
+        try {
+            final List<QueryTask> queryTaskList = extractionRequest.getQueryTaskList();
+            final int queryTaskListSize = queryTaskList.size();
 
-        for (int i = 0; i < queryTaskListSize; i++) {
-            final QueryTask queryTask = queryTaskList.get(i);
-            final TableCreationTask tableCreationTask = queryTask.getTableCreationTask();
-            final DataExtractionTask dataExtractionTask = queryTask.getDataExtractionTask();
 
-            final Long queryBeginTime = System.currentTimeMillis();
-            logger.info(String.format("%s - Processing %d/%d query.", currentThreadName, (i + 1), queryTaskListSize));
+            for (int i = 0; i < queryTaskListSize; i++) {
+                final QueryTask queryTask = queryTaskList.get(i);
+                final TableCreationTask tableCreationTask = queryTask.getTableCreationTask();
+                final DataExtractionTask dataExtractionTask = queryTask.getDataExtractionTask();
 
-            if (tableCreationTask != null) {
-                logger.info(String.format("%s - Start table creation at Hive Query: %s", currentThreadName, tableCreationTask.getQuery()));
-                rawDataDBService.createTable(tableCreationTask);
+                final Long queryBeginTime = System.currentTimeMillis();
+                logger.info(String.format("%s - Processing %d/%d query.", currentThreadName, (i + 1), queryTaskListSize));
+
+                if (tableCreationTask != null) {
+                    logger.info(String.format("%s - Start table creation at Hive Query: %s", currentThreadName, tableCreationTask.getQuery()));
+                    rawDataDBService.createTable(tableCreationTask);
+                }
+
+                if (dataExtractionTask != null) {
+                    logger.info(String.format("%s - Start data extraction at Hive Query: %s", currentThreadName, dataExtractionTask.getQuery()));
+                    rawDataDBService.extractData(dataExtractionTask);
+
+                    //
+                    // TODO: Merge Reducer output files in HDFS, download merged file to local file system.
+                    //
+                    final String dataFileName = dataExtractionTask.getRawTableName();
+                    final String hdfsLocation = dataExtractionTask.getHdfsLocation();
+                    final String header = dataExtractionTask.getHeader();
+                    shellScriptResolver.runReducePartsMerger(hdfsLocation, header, homePath, dataFileName);
+                }
+
+                final Long queryEndTime = System.currentTimeMillis() - queryBeginTime;
+                logger.info(String.format("%s - Finish Hive Query: %s, Elapsed time: %d ms", currentThreadName, queryTask, queryEndTime));
             }
-
-            if (dataExtractionTask != null) {
-                logger.info(String.format("%s - Start data extraction at Hive Query: %s", currentThreadName, dataExtractionTask.getQuery()));
-                rawDataDBService.extractData(dataExtractionTask);
-
-                //
-                // TODO: Merge Reducer output files in HDFS, download merged file to local file system.
-                //
-                final String hdfsLocation = dataExtractionTask.getHdfsLocation();
-                final String header = dataExtractionTask.getHeader();
-                shellScriptResolver.runReducePartsMerger(hdfsLocation, header, homePath);
-            }
-
-            final Long queryEndTime = System.currentTimeMillis() - queryBeginTime;
-            logger.info(String.format("%s - Finish Hive Query: %s, Elapsed time: %d ms", currentThreadName, queryTask, queryEndTime));
+        } catch (Exception e) {
+            throw new RuntimeException(e.getMessage());
         }
     }
 
     private void runArchiveTask(String databaseName, TrRequestInfo requestInfo) {
-        //
-        // TODO: Archive the extracted data set and finally send the file to FTP server.
-        //
-        final String archiveFileName = String.format("%s_%s.tar.gz", requestInfo.getUserID(), String.valueOf(new Timestamp(System.currentTimeMillis()).getTime()));
-        final String ftpLocation = String.format("/%s/%s", requestInfo.getUserID(), databaseName);
+        try {
+            //
+            // TODO: Archive the extracted data set and finally send the file to FTP server.
+            //
+            final String archiveFileName = String.format("%s_%s.tar.gz", requestInfo.getUserID(), String.valueOf(new Timestamp(System.currentTimeMillis()).getTime()));
+            final String ftpLocation = String.format("/%s/%s", requestInfo.getUserID(), databaseName);
 
-        final long archiveFileBeginTime = System.currentTimeMillis();
-        logger.info(String.format("%s - Start archiving the extracted data set: %s", currentThreadName, archiveFileName));
-        shellScriptResolver.runArchiveExtractedDataSet(archiveFileName, ftpLocation, homePath);
-        logger.info(String.format("%s - Finish archiving the extracted data set: %s, Elapsed time: %d ms", currentThreadName, archiveFileName, (System.currentTimeMillis() - archiveFileBeginTime)));
+            final long archiveFileBeginTime = System.currentTimeMillis();
+            logger.info(String.format("%s - Start archiving the extracted data set: %s", currentThreadName, archiveFileName));
+            shellScriptResolver.runArchiveExtractedDataSet(archiveFileName, ftpLocation, homePath);
+            logger.info(String.format("%s - Finish archiving the extracted data set: %s, Elapsed time: %d ms", currentThreadName, archiveFileName, (System.currentTimeMillis() - archiveFileBeginTime)));
 
-        final String ftpURI = String.format("%s/%s", ftpLocation, archiveFileName);
-        dataIntegrationPlatformAPICaller.callCreateFtpInfo(requestInfo.getDataSetUID(), requestInfo.getUserID(), ftpURI);
+            final String ftpURI = String.format("%s/%s", ftpLocation, archiveFileName);
+            dataIntegrationPlatformAPICaller.callCreateFtpInfo(requestInfo.getDataSetUID(), requestInfo.getUserID(), ftpURI);
+        } catch (Exception e) {
+            throw new RuntimeException(e.getMessage());
+        }
     }
 }

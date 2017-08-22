@@ -103,7 +103,7 @@ public class ExtractionRequestResolverImpl implements ExtractionRequestResolver 
                     logger.info(String.format("%s - query: %s", currentThreadName, query));
 
                     final String extrDbName = String.format("%s_extracted", databaseName);
-                    final String extrTableName = CommonUtil.getHashedString(query); //String.format("%s_%s", tableName, CommonUtil.getHashedString(query));
+                    final String extrTableName = String.format("%s_%s", databaseName, CommonUtil.getHashedString(query));
                     final String dbAndHashedTableName = String.format("%s.%s", extrDbName, extrTableName);
                     logger.info(String.format("%s - dbAndHashedTableName: %s", currentThreadName, dbAndHashedTableName));
 
@@ -120,7 +120,7 @@ public class ExtractionRequestResolverImpl implements ExtractionRequestResolver 
                 logger.info(String.format("%s - joinQuery: %s", currentThreadName, joinQuery));
 
                 final String joinDbName = String.format("%s_join_%s_integrated", databaseName, joinCondition);
-                final String joinTableName = CommonUtil.getHashedString(joinQuery);//String.format("%s_%s", getJoinedTableName(joinTargetKeySet), CommonUtil.getHashedString(joinQuery));
+                final String joinTableName = String.format("%s_%s", databaseName, CommonUtil.getHashedString(joinQuery));
                 final String dbAndHashedTableName = String.format("%s.%s", joinDbName, joinTableName);
 
                 TableCreationTask tableCreationTask = new TableCreationTask(dbAndHashedTableName, joinQuery);
@@ -158,39 +158,23 @@ public class ExtractionRequestResolverImpl implements ExtractionRequestResolver 
         List<QueryTask> queryTaskList = new ArrayList<>();
 
         for (AdjacentTableInfo adjacentTableInfo : adjacentTableInfoSet) {
+            final String tableName = adjacentTableInfo.getTableName();
             final String header = adjacentTableInfo.getHeader();
-            JoinParameter sourceJoinParameter = new JoinParameter(adjacentTableInfo.getDatabaseName(), adjacentTableInfo.getTableName(), header, joinCondition);
+
+            JoinParameter sourceJoinParameter = new JoinParameter(databaseName, tableName, header, joinCondition);
 
             final String joinQuery = joinClauseBuilder.buildClause(sourceJoinParameter, targetJoinParameter);
             final String joinDbName = String.format("%s_join_%s_integrated", databaseName, joinCondition);
-
-            final String joinTableName = CommonUtil.getHashedString(joinQuery);//String.format("%s_%s", String.format("%s__%s", sourceJoinParameter.getTableName(), targetJoinParameter.getTableName()), CommonUtil.getHashedString(joinQuery));
-
+            final String joinTableName = String.format("%s_%s", databaseName, CommonUtil.getHashedString(joinQuery));
             final String dbAndHashedTableName = String.format("%s.%s", joinDbName, joinTableName);
             final String extractionQuery = selectClauseBuilder.buildClause(joinDbName, joinTableName, header);
 
             TableCreationTask tableCreationTask = new TableCreationTask(dbAndHashedTableName, joinQuery);
-            DataExtractionTask dataExtractionTask = new DataExtractionTask(CommonUtil.getHdfsLocation(dbAndHashedTableName, dataSetUID), extractionQuery, header);
+            DataExtractionTask dataExtractionTask = new DataExtractionTask(tableName/*Data File Name*/, CommonUtil.getHdfsLocation(dbAndHashedTableName, dataSetUID), extractionQuery, header);
 
             queryTaskList.add(new QueryTask(tableCreationTask, dataExtractionTask));
         }
 
         return queryTaskList;
     }
-
-//    private String getJoinedTableName(Set<ParameterKey> joinTargetKeySet) {
-//        final List<ParameterKey> joinTargetKeyList = new ArrayList<>(joinTargetKeySet);
-//        final StringBuilder joinedTableNameBuilder = new StringBuilder();
-//        final Integer joinTargetKeyListSize = joinTargetKeyList.size();
-//
-//        for (int i = 0; i < joinTargetKeyListSize; i++) {
-//            ParameterKey parameterKey = joinTargetKeyList.get(i);
-//            joinedTableNameBuilder.append(parameterKey.getTableName());
-//
-//            if (i < joinTargetKeyListSize - 1)
-//                joinedTableNameBuilder.append("__");
-//        }
-//
-//        return joinedTableNameBuilder.toString();
-//    }
 }
