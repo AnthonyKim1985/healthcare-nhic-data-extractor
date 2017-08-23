@@ -141,7 +141,7 @@ public class ExtractionRequestResolverImpl implements ExtractionRequestResolver 
                 }
             }
             /* 기준 연도가 주어졌을 때 (추적) */
-            else if (joinConditionYear > 0) {
+            else {
                 final JoinParameter targetJoinParameter = joinParameterMapForExtraction.get(joinConditionYear);
                 for (Integer sourceDataSetYear : yearAdjacentTableInfoMap.keySet()) {
                     final Set<AdjacentTableInfo> adjacentTableInfoSet = yearAdjacentTableInfoMap.get(sourceDataSetYear);
