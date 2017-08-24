@@ -37,7 +37,11 @@ public class ExtractionRequestResolverImpl implements ExtractionRequestResolver 
     private final ExtractionRequestParameterResolver extractionRequestParameterResolver;
 
     @Autowired
-    public ExtractionRequestResolverImpl(SelectClauseBuilder selectClauseBuilder, WhereClauseBuilder whereClauseBuilder, JoinClauseBuilder joinClauseBuilder, ExtractionRequestParameterResolver extractionRequestParameterResolver) {
+    public ExtractionRequestResolverImpl(SelectClauseBuilder selectClauseBuilder,
+                                         WhereClauseBuilder whereClauseBuilder,
+                                         JoinClauseBuilder joinClauseBuilder,
+                                         ExtractionRequestParameterResolver extractionRequestParameterResolver)
+    {
         this.selectClauseBuilder = selectClauseBuilder;
         this.whereClauseBuilder = whereClauseBuilder;
         this.joinClauseBuilder = joinClauseBuilder;
@@ -159,22 +163,26 @@ public class ExtractionRequestResolverImpl implements ExtractionRequestResolver 
     private List<QueryTask> getJoinQueryTasks(Set<AdjacentTableInfo> adjacentTableInfoSet, JoinParameter targetJoinParameter, String databaseName, String joinCondition, Integer dataSetUID) {
         List<QueryTask> queryTaskList = new ArrayList<>();
 
-        for (AdjacentTableInfo adjacentTableInfo : adjacentTableInfoSet) {
-            final String tableName = adjacentTableInfo.getTableName();
-            final String header = adjacentTableInfo.getHeader();
+        try {
+            for (AdjacentTableInfo adjacentTableInfo : adjacentTableInfoSet) {
+                final String tableName = adjacentTableInfo.getTableName();
+                final String header = adjacentTableInfo.getHeader();
 
-            JoinParameter sourceJoinParameter = new JoinParameter(databaseName, tableName, header, joinCondition);
+                JoinParameter sourceJoinParameter = new JoinParameter(databaseName, tableName, header, joinCondition);
 
-            final String joinQuery = joinClauseBuilder.buildClause(sourceJoinParameter, targetJoinParameter);
-            final String joinDbName = String.format("%s_join_%s_integrated", databaseName, joinCondition);
-            final String joinTableName = String.format("%s_%s", databaseName, CommonUtil.getHashedString(joinQuery));
-            final String dbAndHashedTableName = String.format("%s.%s", joinDbName, joinTableName);
-            final String extractionQuery = selectClauseBuilder.buildClause(joinDbName, joinTableName, header);
+                final String joinQuery = joinClauseBuilder.buildClause(sourceJoinParameter, targetJoinParameter);
+                final String joinDbName = String.format("%s_join_%s_integrated", databaseName, joinCondition);
+                final String joinTableName = String.format("%s_%s", databaseName, CommonUtil.getHashedString(joinQuery));
+                final String dbAndHashedTableName = String.format("%s.%s", joinDbName, joinTableName);
+                final String extractionQuery = selectClauseBuilder.buildClause(joinDbName, joinTableName, header);
 
-            TableCreationTask tableCreationTask = new TableCreationTask(dbAndHashedTableName, joinQuery);
-            DataExtractionTask dataExtractionTask = new DataExtractionTask(tableName/*Data File Name*/, CommonUtil.getHdfsLocation(dbAndHashedTableName, dataSetUID), extractionQuery, header);
+                TableCreationTask tableCreationTask = new TableCreationTask(dbAndHashedTableName, joinQuery);
+                DataExtractionTask dataExtractionTask = new DataExtractionTask(tableName/*Data File Name*/, CommonUtil.getHdfsLocation(dbAndHashedTableName, dataSetUID), extractionQuery, header);
 
-            queryTaskList.add(new QueryTask(tableCreationTask, dataExtractionTask));
+                queryTaskList.add(new QueryTask(tableCreationTask, dataExtractionTask));
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e.getMessage());
         }
 
         return queryTaskList;
