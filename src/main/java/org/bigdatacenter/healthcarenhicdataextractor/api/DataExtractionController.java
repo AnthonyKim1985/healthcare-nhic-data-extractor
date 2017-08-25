@@ -59,6 +59,7 @@ public class DataExtractionController {
             final String jsonForExtractionRequest = new Gson().toJson(extractionRequest, ExtractionRequest.class);
             extractionResponse = new ExtractionResponse(jobAcceptedTime, jsonForExtractionRequest);
         } catch (Exception e) {
+            e.printStackTrace();
             dataIntegrationPlatformAPICaller.callUpdateProcessState(dataSetUID, DataIntegrationPlatformAPICaller.PROCESS_STATE_CODE_REJECTED);
             throw new RESTException(String.format("Bad request (%s)", e.getMessage()), httpServletResponse);
         }
