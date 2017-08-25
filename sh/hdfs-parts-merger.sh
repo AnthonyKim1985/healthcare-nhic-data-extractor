@@ -1,14 +1,15 @@
 #!/usr/bin/env bash
-#USAGE: sh hdfs-parts-merger.sh [hdfs_location] [header] [home_path] [data_file_name]
+#USAGE: sh hdfs-parts-merger.sh [hdfs_location] [header] [home_path] [data_file_name] [data_set_name]
 
 hdfsLocation=$1
 header=$2
 homePath=$3
 dataFileName=$4
+dataSetName=$5
 
 # dbTableName=`echo ${hdfsLocation} | cut -d'/' -f4`
 # dataFileName=`echo ${hdfsLocation} | cut -d'/' -f4 | cut -d'.' -f2`
-dataSetDirName=${homePath}/extracted_dataset
+dataSetDirName=${homePath}/extracted_dataset/${dataSetName}
 
 if ! test -d ${dataSetDirName}  ; then
     mkdir -p ${dataSetDirName}
@@ -27,4 +28,4 @@ echo ${header}
 sed -i -e '1i'${header}'\' ${dataSetDirName}/${dataFileName}.csv
 
 # Remove header temp file
-rm -rf ${dataSetDirName}/header
+# rm -rf ${dataSetDirName}/header

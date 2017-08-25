@@ -16,7 +16,7 @@ public class SelectClauseBuilderImpl implements SelectClauseBuilder {
     }
 
     @Override
-    public String buildClause(String dbName, String tableName, String projections) {
+    public String buildClause(String dbName, String tableName, String projections, Boolean enableDistinct) {
         if (dbName == null || dbName.isEmpty())
             throw new NullPointerException("The dbName is either null or empty.");
 
@@ -25,6 +25,9 @@ public class SelectClauseBuilderImpl implements SelectClauseBuilder {
 
         if (projections == null || projections.isEmpty())
             throw new NullPointerException("The projections is either null or empty.");
+
+        if (enableDistinct)
+            return String.format("SELECT DISTINCT %s FROM %s.%s", projections, dbName, tableName);
 
         return String.format("SELECT %s FROM %s.%s", projections, dbName, tableName);
     }

@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
-#USAGE: sh archive-data-set.sh [archive_file_name] [ftp_location] [home_path]
+#USAGE: sh archive-data-set.sh [archive_file_name] [ftp_location] [home_path] [data_set_name]
 
 archiveFileName=$1
 ftpLocation=$2
 homePath=$3
+dataSetName=$4
 
-dataSetDirName=${homePath}/extracted_dataset
+dataSetDirName=${homePath}/extracted_dataset/${dataSetName}
 archiveDirName=${homePath}/archive
 
 if ! test -d ${archiveDirName} ; then
