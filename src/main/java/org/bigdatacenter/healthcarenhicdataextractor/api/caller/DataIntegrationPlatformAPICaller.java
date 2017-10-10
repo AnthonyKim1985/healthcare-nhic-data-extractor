@@ -16,4 +16,6 @@ public interface DataIntegrationPlatformAPICaller {
     void callCreateFtpInfo(Integer dataSetUID, String userID, String ftpURI);
 
     String callReadProjectionNames(Integer dataSetUID, String tableName, Integer tableYear);
+
+//    void callCreateLogInfo(Integer dataSetUID, String logLevel, String logMessage);
 }
