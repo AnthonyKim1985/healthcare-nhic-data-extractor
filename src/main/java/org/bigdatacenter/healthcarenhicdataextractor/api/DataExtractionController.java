@@ -45,11 +45,11 @@ public class DataExtractionController {
     @RequestMapping(value = "dataExtraction", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_UTF8_VALUE)
     public ExtractionResponse dataExtraction(@RequestBody ExtractionParameter extractionParameter, HttpServletResponse httpServletResponse) {
         if (extractionParameter == null) {
-            throw new RESTException(String.format("(dataSetUID=null / currentThread=%s) - The extractionParameter is null.", currentThreadName), httpServletResponse);
+            throw new RESTException(String.format("(dataSetUID=null / threadName=%s) - The extractionParameter is null.", currentThreadName), httpServletResponse);
         } else if (extractionParameter.getRequestInfo() == null) {
-            throw new RESTException(String.format("(dataSetUID=null / currentThread=%s) - The requestInfo at extractionParameter is null.", currentThreadName), httpServletResponse);
+            throw new RESTException(String.format("(dataSetUID=null / threadName=%s) - The requestInfo at extractionParameter is null.", currentThreadName), httpServletResponse);
         } else if (extractionParameter.getRequestInfo().getDataSetUID() == null) {
-            throw new RESTException(String.format("(dataSetUID=%d / currentThread=%s) - The dataSetUID of requestInfo at extractionParameter is null.", extractionParameter.getRequestInfo().getDataSetUID(), currentThreadName), httpServletResponse);
+            throw new RESTException(String.format("(dataSetUID=%d / threadName=%s) - The dataSetUID of requestInfo at extractionParameter is null.", extractionParameter.getRequestInfo().getDataSetUID(), currentThreadName), httpServletResponse);
         }
 
         final ExtractionRequest extractionRequest;
@@ -57,7 +57,7 @@ public class DataExtractionController {
         final Integer dataSetUID = extractionParameter.getRequestInfo().getDataSetUID();
 
         try {
-            logger.info(String.format("(dataSetUID=%d / currentThread=%s) - extractionParameter: %s", dataSetUID, currentThreadName, extractionParameter));
+            logger.info(String.format("(dataSetUID=%d / threadName=%s) - extractionParameter: %s", dataSetUID, currentThreadName, extractionParameter));
             extractionRequest = extractionRequestResolver.buildExtractionRequest(extractionParameter);
 
             synchronized (this) {
@@ -70,7 +70,7 @@ public class DataExtractionController {
         } catch (Exception e) {
             e.printStackTrace();
             dataIntegrationPlatformAPICaller.callUpdateProcessState(dataSetUID, DataIntegrationPlatformAPICaller.PROCESS_STATE_CODE_REJECTED);
-            throw new RESTException(String.format("(dataSetUID=%d / currentThread=%s) - Bad request (%s)", dataSetUID, currentThreadName, e.getMessage()), httpServletResponse);
+            throw new RESTException(String.format("(dataSetUID=%d / threadName=%s) - Bad request (%s)", dataSetUID, currentThreadName, e.getMessage()), httpServletResponse);
         }
 
         return extractionResponse;
