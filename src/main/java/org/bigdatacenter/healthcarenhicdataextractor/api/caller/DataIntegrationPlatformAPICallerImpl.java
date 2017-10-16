@@ -60,7 +60,7 @@ public class DataIntegrationPlatformAPICallerImpl implements DataIntegrationPlat
         final HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(parameters, headers);
         final Integer response = restTemplate.postForObject(updateJobStartTimeURL, request, Integer.class);
 
-        logger.info(String.format("(dataSetUID=%d / currentThread=%s) - The jobStartTime column updated %d record(s).", dataSetUID, currentThreadName, response));
+        logger.info(String.format("(dataSetUID=%d / threadName=%s) - The jobStartTime column updated %d record(s).", dataSetUID, currentThreadName, response));
     }
 
     @Override
@@ -72,7 +72,7 @@ public class DataIntegrationPlatformAPICallerImpl implements DataIntegrationPlat
         final HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(parameters, headers);
         final Integer response = restTemplate.postForObject(updateJobEndTimeURL, request, Integer.class);
 
-        logger.info(String.format("(dataSetUID=%d / currentThread=%s) - The jobEndTime column updated %d record(s).", dataSetUID, currentThreadName, response));
+        logger.info(String.format("(dataSetUID=%d / threadName=%s) - The jobEndTime column updated %d record(s).", dataSetUID, currentThreadName, response));
     }
 
     @Override
@@ -89,7 +89,7 @@ public class DataIntegrationPlatformAPICallerImpl implements DataIntegrationPlat
         final HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(parameters, headers);
         final Integer response = restTemplate.postForObject(updateElapsedTimeURL, request, Integer.class);
 
-        logger.info(String.format("(dataSetUID=%d / currentThread=%s) - The elapsedTime column updated %d record(s).", dataSetUID, currentThreadName, response));
+        logger.info(String.format("(dataSetUID=%d / threadName=%s) - The elapsedTime column updated %d record(s).", dataSetUID, currentThreadName, response));
     }
 
     @Override
@@ -101,7 +101,7 @@ public class DataIntegrationPlatformAPICallerImpl implements DataIntegrationPlat
         final HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(parameters, headers);
         final Integer response = restTemplate.postForObject(updateProcessStateURL, request, Integer.class);
 
-        logger.info(String.format("(dataSetUID=%d / currentThread=%s) - The processState column updated %d record(s).", dataSetUID, currentThreadName, response));
+        logger.info(String.format("(dataSetUID=%d / threadName=%s) - The processState column updated %d record(s).", dataSetUID, currentThreadName, response));
     }
 
     @Override
@@ -114,7 +114,7 @@ public class DataIntegrationPlatformAPICallerImpl implements DataIntegrationPlat
         final HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(parameters, headers);
         final Integer response = restTemplate.postForObject(createFtpInfoURL, request, Integer.class);
 
-        logger.info(String.format("(dataSetUID=%d / currentThread=%s) - The FTP Info has been inserted. (code: %d)", dataSetUID, currentThreadName, response));
+        logger.info(String.format("(dataSetUID=%d / threadName=%s) - The FTP Info has been inserted. (code: %d)", dataSetUID, currentThreadName, response));
     }
 
     @Override
@@ -127,7 +127,7 @@ public class DataIntegrationPlatformAPICallerImpl implements DataIntegrationPlat
         HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(parameters, headers);
 
         final String response = restTemplate.postForObject(readProjectionNamesURL, request, String.class);
-        logger.info(String.format("(dataSetUID=%d / currentThread=%s) - The requested projection names: %s", dataSetUID, currentThreadName, response));
+        logger.info(String.format("(dataSetUID=%d / threadName=%s) - The requested projection names: %s", dataSetUID, currentThreadName, response));
 
         return response;
     }
