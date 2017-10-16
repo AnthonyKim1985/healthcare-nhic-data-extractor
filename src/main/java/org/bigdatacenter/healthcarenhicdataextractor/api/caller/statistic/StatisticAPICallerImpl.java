@@ -42,6 +42,6 @@ public class StatisticAPICallerImpl implements StatisticAPICaller {
         final HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(parameters, headers);
         final String response = restTemplate.postForObject(createStatisticURL, request, String.class);
 
-        logger.info(String.format("%s - Response From Statistic REST API Server: %s", currentThreadName, response));
+        logger.info(String.format("(dataSetUID=%d / threadName=%s) - Response From Statistic REST API Server: %s", dataSetUID, currentThreadName, response));
     }
 }
